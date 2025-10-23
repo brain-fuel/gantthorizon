@@ -23,3 +23,8 @@ Follow the Commit Standards in standards/CONVENTIONAL_COMMITS.md
 
 - Track app releases in `.gantt-horizon-version` using [Semantic Versioning 2.0.0](standards/SEMVER.md).
 - Forge deploys still increment major versions automatically; keep the semantic version file in sync with feature milestones.
+
+## Testing
+
+- Set `JIRA_SITE`, `FORGE_EMAIL`, and `FORGE_API_TOKEN` in your shell session before running Jira integration tests.
+- Execute `node --test tests/jira-sandbox.test.mjs` to generate a temporary project, populate coverage issues, and verify teardown.
