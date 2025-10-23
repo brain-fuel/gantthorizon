@@ -2,12 +2,14 @@
 
 Never commit .atlassian-email
 Never commit .atlassian-token
+Never commit .atlassian-jira-site
 
 As needed, repopulate the necessary environment variables by running:
 
 ```bash
 export FORGE_EMAIL=$(cat .atlassian-email)
 export FORGE_API_TOKEN=$(cat .atlassian-token)
+export JIRA_SITE=$(cat .atlassian-jira-site)
 ```
 
 If I need to repopulate .atlassian-token because it is out of date, let me know.
@@ -26,5 +28,5 @@ Follow the Commit Standards in standards/CONVENTIONAL_COMMITS.md
 
 ## Testing
 
-- Set `JIRA_SITE`, `FORGE_EMAIL`, and `FORGE_API_TOKEN` in your shell session before running Jira integration tests.
+- Set `JIRA_SITE`, `FORGE_EMAIL`, and `FORGE_API_TOKEN` in your shell session (use the snippet above to populate them from `.atlassian-*` helper files) before running Jira integration tests.
 - Execute `node --test tests/jira-sandbox.test.mjs` to generate a temporary project, populate coverage issues, and verify teardown.
