@@ -31,3 +31,4 @@ Follow the Commit Standards in standards/CONVENTIONAL_COMMITS.md
 - Set `JIRA_SITE`, `FORGE_EMAIL`, and `FORGE_API_TOKEN` in your shell session (use the snippet above to populate them from `.atlassian-*` helper files) before running Jira integration tests.
 - Execute `node --test tests/jira-sandbox.test.mjs` to generate a temporary project, populate coverage issues, and verify teardown.
 - Run `node --test tests/pert-task.test.mjs` for the PERT task creation assertions.
+- Run `node --test tests/pert-aggregation.test.mjs` to validate sequential aggregation scenarios.
