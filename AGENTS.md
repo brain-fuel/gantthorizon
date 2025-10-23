@@ -18,8 +18,8 @@ Follow the Commit Standards in standards/CONVENTIONAL_COMMITS.md
 
 ## Active Forge apps
 
-- `hello-world-app`: initial tutorial scaffold, keep for reference only.
-- `gantt-horizon`: primary project for incremental feature work. Build new functionality here.
+- `hello-world-app`: initial tutorial scaffold retained for reference only.
+- `gantt-horizon`: primary TypeScript project for incremental feature work.
 
 ## Versioning
 
