@@ -428,4 +428,11 @@ export async function withJiraTestProject(callback, options) {
   return sandbox.run(callback);
 }
 
-export { createProject, deleteProject, createDemoIssues };
+export {
+  createProject,
+  deleteProject,
+  createDemoIssues,
+  createIssue,
+  getCreateMeta,
+  jiraRequest
+};
