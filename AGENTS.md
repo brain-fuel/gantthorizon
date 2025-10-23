@@ -1,0 +1,25 @@
+# Instructions for Agents
+
+Never commit .atlassian-email
+Never commit .atlassian-token
+
+As needed, repopulate the necessary environment variables by running:
+
+```bash
+export FORGE_EMAIL=$(cat .atlassian-email)
+export FORGE_API_TOKEN=$(cat .atlassian-token)
+```
+
+If I need to repopulate .atlassian-token because it is out of date, let me know.
+
+Follow the Commit Standards in standards/CONVENTIONAL_COMMITS.md
+
+## Active Forge apps
+
+- `hello-world-app`: initial tutorial scaffold, keep for reference only.
+- `gantt-horizon`: primary project for incremental feature work. Build new functionality here.
+
+## Versioning
+
+- Track app releases in `.gantt-horizon-version` using [Semantic Versioning 2.0.0](standards/SEMVER.md).
+- Forge deploys still increment major versions automatically; keep the semantic version file in sync with feature milestones.
