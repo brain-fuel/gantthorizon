@@ -4,8 +4,9 @@ Gantt Horizon is a Forge app under the Compass & Frame banner that turns Jira is
 
 ## Repository layout
 
-- `.gantt-horizon-version` – semantic version for stakeholders (currently `0.3.0`).
+- `.gantt-horizon-version` – semantic version for stakeholders (currently `0.4.0`).
 - `AGENTS.md` – operational instructions, secrets handling, testing commands, commit rules.
+- `docs/user-guide.md` – customer-facing documentation kept in sync with each release.
 - `docs/sample-press-release.md` – working-backwards press release for the product vision.
 - `gantt-horizon/` – Forge app source.
   - `package.json`, `package-lock.json` – TypeScript / Forge CLI toolchain.
@@ -20,7 +21,7 @@ Gantt Horizon is a Forge app under the Compass & Frame banner that turns Jira is
 
 1. **Modified PERT** – estimate triples `(best, mostLikely, worst)` map to Beta distributions with weight `λ` (default 4). Means and variances are deterministic.
 2. **Sequential aggregation** – parent durations sum child expectations/variances (`aggregateSequentialPert`). Parallel handling and critical-path scoring will follow.
-3. **Persistence in Jira** – when we create a task via `createPertTask`, we store the triple (plus hour aliases) as an issue property so resolvers/UI can reuse the values.
+3. **Persistence in Jira** – `createPertTask` stores the triple (plus hour aliases) as an issue property so resolvers/UI can reuse the values.
 4. **Sandboxing** – `jiraTestSandbox` spins up temporary projects with stories/tasks/bugs & subtasks so tests can validate every hierarchy scenario before teardown.
 
 ## Local setup
@@ -93,7 +94,7 @@ Temporary Jira projects are deleted in teardown; if a test fails it prints the p
 ## Versioning
 
 - Forge increments deployment majors automatically (`forge deploy`).
-- Project semantic version is managed in `.gantt-horizon-version` (currently `0.3.0`). Update it whenever behaviour changes significantly.
+- Project semantic version is managed in `.gantt-horizon-version` (currently `0.4.0`). Update it whenever behaviour changes significantly, and refresh `docs/user-guide.md` simultaneously.
 
 ## Future work
 
@@ -104,7 +105,8 @@ Temporary Jira projects are deleted in teardown; if a test fails it prints the p
 ## Getting help
 
 - See `AGENTS.md` for operational instructions.
+- Review `docs/user-guide.md` for customer-facing usage details.
 - Contact Compass & Frame maintainers when credentials or Forge access need attention.
-- Align features with the press release in `docs/sample-press-release.md`.
+- Use `docs/sample-press-release.md` to orient features toward the product vision.
 
 Happy building!

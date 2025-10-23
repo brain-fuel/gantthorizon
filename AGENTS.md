@@ -15,7 +15,7 @@ export JIRA_SITE=$(cat .atlassian-jira-site)
 If I need to repopulate .atlassian-token because it is out of date, let me know.
 
 Follow the Commit Standards in standards/CONVENTIONAL_COMMITS.md.
-Whenever behaviour or developer workflows change, update the relevant documentation (README, AGENTS, user docs) in the same change.
+Whenever behaviour or developer workflows change, update the relevant documentation (README, AGENTS, docs/end-user guides) in the same change so developer and customer guidance remain in sync.
 
 ## Active Forge apps
 
