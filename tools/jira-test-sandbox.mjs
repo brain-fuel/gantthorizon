@@ -402,7 +402,10 @@ export class JiraTestSandbox {
       try {
         await deleteProject(this.project.id);
       } catch (error) {
-        console.warn('Failed to delete Jira project during teardown:', error);
+        console.warn(
+          `Failed to delete Jira project during teardown (id=${this.project.id}, key=${this.project.key}).`,
+          error
+        );
       }
     }
     this.project = null;
