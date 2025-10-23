@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { JiraTestSandbox } from '../tools/jira-test-sandbox.mjs';
+
+import { JiraTestSandbox } from '../src/lib/jiraTestSandbox.js';
 
 const missingEnv = ['JIRA_SITE', 'FORGE_EMAIL', 'FORGE_API_TOKEN'].filter((key) => !process.env[key]);
 
-const testOptions = {
+const testOptions: test.TestOptions = {
   timeout: 180_000,
   skip: missingEnv.length > 0
 };

@@ -29,6 +29,7 @@ Follow the Commit Standards in standards/CONVENTIONAL_COMMITS.md
 ## Testing
 
 - Set `JIRA_SITE`, `FORGE_EMAIL`, and `FORGE_API_TOKEN` in your shell session (use the snippet above to populate them from `.atlassian-*` helper files) before running Jira integration tests.
-- Execute `node --test tests/jira-sandbox.test.mjs` to generate a temporary project, populate coverage issues, and verify teardown.
-- Run `node --test tests/pert-task.test.mjs` for the PERT task creation assertions.
-- Run `node --test tests/pert-aggregation.test.mjs` to validate sequential aggregation scenarios.
+- Change into `gantt-horizon/` and run `npm run test` for a full build plus the TypeScript unit suite (integration tests will be skipped when Atlassian credentials are not exported).
+- After exporting `FORGE_EMAIL`, `FORGE_API_TOKEN`, and `JIRA_SITE`, execute `node --test dist/tests/jira-sandbox.test.js` to generate a temporary project, populate coverage issues, and verify teardown.
+- Run `node --test dist/tests/pert-task.test.js` for the PERT task creation assertions.
+- Run `node --test dist/tests/pert-aggregation.test.js` to validate sequential aggregation scenarios on the compiled output.

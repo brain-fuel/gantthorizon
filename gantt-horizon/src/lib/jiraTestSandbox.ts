@@ -4,20 +4,20 @@ const DEFAULT_PROJECT_TYPE = 'software';
 const DEFAULT_LABELS = ['gantt-horizon', 'auto-generated'];
 const DEFAULT_PRIORITY = 'Medium';
 
-const REQUIRED_ENV_VARS = ['JIRA_SITE', 'FORGE_EMAIL', 'FORGE_API_TOKEN'];
+const REQUIRED_ENV_VARS = ['JIRA_SITE', 'FORGE_EMAIL', 'FORGE_API_TOKEN'] as const;
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+type RequiredEnvVar = (typeof REQUIRED_ENV_VARS)[number];
 
-function ensureEnv() {
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function ensureEnv(): void {
   const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
   if (missing.length) {
-    throw new Error(
-      `Missing environment variables for Jira test sandbox: ${missing.join(', ')}`
-    );
+    throw new Error(`Missing environment variables for Jira test sandbox: ${missing.join(', ')}`);
   }
 }
 
-function getBaseUrl() {
+function getBaseUrl(): string {
   const site = process.env.JIRA_SITE;
   if (!site) {
     throw new Error('JIRA_SITE environment variable is not set.');
@@ -25,7 +25,7 @@ function getBaseUrl() {
   return site.startsWith('http') ? `${site.replace(/\/$/, '')}/rest/api/3` : `https://${site}/rest/api/3`;
 }
 
-function buildAuthHeaders() {
+function buildAuthHeaders(): Record<string, string> {
   const email = process.env.FORGE_EMAIL;
   const token = process.env.FORGE_API_TOKEN;
   if (!email || !token) {
@@ -38,29 +38,42 @@ function buildAuthHeaders() {
   };
 }
 
-async function jiraRequest(path, { method = 'GET', body, headers = {}, searchParams } = {}) {
+interface JiraRequestOptions extends Omit<RequestInit, 'body'> {
+  searchParams?: Record<string, string | number | boolean | undefined>;
+  body?: unknown;
+}
+
+export async function jiraRequest<T = unknown>(
+  path: string,
+  { method = 'GET', body, headers = {}, searchParams, ...rest }: JiraRequestOptions = {}
+): Promise<T> {
   ensureEnv();
   const baseUrl = getBaseUrl();
   const url = new URL(path.replace(/^\//, ''), `${baseUrl}/`);
   if (searchParams) {
     Object.entries(searchParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        url.searchParams.set(key, value);
+        url.searchParams.set(key, String(value));
       }
     });
   }
-  const init = {
+
+  const init: RequestInit = {
     method,
-    headers: { ...buildAuthHeaders(), ...headers }
+    headers: { ...buildAuthHeaders(), ...headers },
+    ...rest
   };
+
   if (body !== undefined) {
     init.body = typeof body === 'string' ? body : JSON.stringify(body);
-    init.headers['Content-Type'] = 'application/json';
+    (init.headers as Record<string, string>)['Content-Type'] = 'application/json';
   }
+
   const response = await fetch(url, init);
   if (response.status === 204 || response.status === 202) {
-    return null;
+    return null as T;
   }
+
   const text = await response.text();
   if (!response.ok) {
     let message = text;
@@ -72,22 +85,24 @@ async function jiraRequest(path, { method = 'GET', body, headers = {}, searchPar
     }
     throw new Error(`Jira API ${method} ${url.pathname} failed (${response.status}): ${message}`);
   }
+
   if (!text) {
-    return null;
+    return null as T;
   }
+
   try {
-    return JSON.parse(text);
+    return JSON.parse(text) as T;
   } catch {
-    return text;
+    return text as unknown as T;
   }
 }
 
-function randomProjectKey(prefix = 'GHT') {
+function randomProjectKey(prefix = 'GHT'): string {
   const suffix = Math.random().toString(36).replace(/[^a-z0-9]+/gi, '').slice(0, 4).toUpperCase();
   return `${prefix}${suffix}`.slice(0, 10);
 }
 
-function toADF(text) {
+function toADF(text: string) {
   return {
     type: 'doc',
     version: 1,
@@ -105,17 +120,22 @@ function toADF(text) {
   };
 }
 
-function formatDueDate(daysFromNow = 7) {
+function formatDueDate(daysFromNow = 7): string {
   const date = new Date();
   date.setUTCDate(date.getUTCDate() + daysFromNow);
   return date.toISOString().slice(0, 10);
 }
 
-async function getCurrentUser() {
-  return jiraRequest('/myself');
+interface JiraUser {
+  accountId: string;
+  [key: string]: unknown;
 }
 
-async function waitForProjectAvailability(key, maxAttempts = 10, delayMs = 1000) {
+async function getCurrentUser(): Promise<JiraUser> {
+  return jiraRequest<JiraUser>('/myself');
+}
+
+async function waitForProjectAvailability(key: string, maxAttempts = 10, delayMs = 1000) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
       const project = await jiraRequest(`/project/${key}`);
@@ -132,7 +152,21 @@ async function waitForProjectAvailability(key, maxAttempts = 10, delayMs = 1000)
   throw new Error(`Timed out waiting for project ${key} to become available.`);
 }
 
-async function createProject(options = {}) {
+interface CreateProjectOptions {
+  key?: string;
+  name?: string;
+  projectTypeKey?: string;
+  projectTemplateKey?: string;
+}
+
+export interface JiraProject {
+  id: string;
+  key: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+export async function createProject(options: CreateProjectOptions = {}): Promise<JiraProject> {
   const { accountId } = await getCurrentUser();
   const key = options.key ?? randomProjectKey();
   const name = options.name ?? `Gantt Horizon Test ${key}`;
@@ -144,32 +178,59 @@ async function createProject(options = {}) {
     leadAccountId: accountId,
     assigneeType: 'PROJECT_LEAD'
   };
-  const project = await jiraRequest('/project', { method: 'POST', body: payload });
+
+  const project = await jiraRequest<JiraProject>('/project', { method: 'POST', body: payload });
   await waitForProjectAvailability(project.key);
   return project;
 }
 
-async function deleteProject(projectIdOrKey) {
+export async function deleteProject(projectIdOrKey: string): Promise<void> {
   await jiraRequest(`/project/${projectIdOrKey}`, { method: 'DELETE' });
 }
 
-async function getCreateMeta(projectKey) {
-  const meta = await jiraRequest('/issue/createmeta', {
+export interface JiraFieldInfo {
+  id: string;
+  name: string;
+  schema?: { type?: string };
+  [key: string]: unknown;
+}
+
+export interface JiraIssueType {
+  id: string;
+  name: string;
+  fieldsByName: Record<string, JiraFieldInfo>;
+  rawFields: Record<string, JiraFieldInfo>;
+}
+
+export type JiraIssueTypeMap = Record<string, JiraIssueType>;
+
+export async function getCreateMeta(projectKey: string): Promise<JiraIssueTypeMap> {
+  const meta = await jiraRequest<{
+    projects?: Array<{
+      issuetypes: Array<{
+        id: string;
+        name: string;
+        fields: Record<string, JiraFieldInfo>;
+      }>;
+    }>;
+  }>('/issue/createmeta', {
     searchParams: {
       projectKeys: projectKey,
       expand: 'projects.issuetypes.fields'
     }
   });
+
   const project = meta?.projects?.[0];
   if (!project) {
     throw new Error(`No create metadata returned for project ${projectKey}`);
   }
-  const types = {};
+
+  const types: JiraIssueTypeMap = {};
   project.issuetypes.forEach((type) => {
-    const fieldsByName = {};
+    const fieldsByName: Record<string, JiraFieldInfo> = {};
     Object.entries(type.fields).forEach(([fieldId, fieldInfo]) => {
       if (fieldInfo?.name) {
-        fieldsByName[fieldInfo.name] = { id: fieldId, ...fieldInfo };
+        fieldsByName[fieldInfo.name] = { ...fieldInfo, id: fieldId };
       }
     });
     types[type.name] = {
@@ -179,10 +240,30 @@ async function getCreateMeta(projectKey) {
       rawFields: type.fields
     };
   });
+
   return types;
 }
 
-async function createIssue({
+interface CreateIssueOptions {
+  projectKey: string;
+  issueType: JiraIssueType;
+  summary: string;
+  description?: string;
+  labels?: string[];
+  dueInDays?: number;
+  priorityName?: string;
+  parentIssue?: { key: string };
+  epicIssue?: { key: string };
+  additionalFields?: Record<string, unknown>;
+}
+
+export interface JiraIssue {
+  id: string;
+  key: string;
+  [key: string]: unknown;
+}
+
+export async function createIssue({
   projectKey,
   issueType,
   summary,
@@ -193,8 +274,8 @@ async function createIssue({
   parentIssue,
   epicIssue,
   additionalFields = {}
-}) {
-  const fields = {
+}: CreateIssueOptions): Promise<JiraIssue> {
+  const fields: Record<string, unknown> = {
     project: { key: projectKey },
     issuetype: { id: issueType.id },
     summary,
@@ -209,28 +290,39 @@ async function createIssue({
     fields.parent = { key: parentIssue.key };
   }
 
-  // Handle Epic specific requirements
   const epicNameField = issueType.fieldsByName?.['Epic Name'];
   if (epicNameField) {
     fields[epicNameField.id] = summary;
   }
 
-  // Link child issues back to the epic when possible.
   if (epicIssue) {
     const epicLinkField = issueType.fieldsByName?.['Epic Link'] ?? issueType.fieldsByName?.['Parent'];
     if (epicLinkField?.schema?.type === 'any') {
       fields[epicLinkField.id] = epicIssue.key;
     } else if (fields.parent === undefined) {
-      // Team-managed projects use the parent field for epics as well.
       fields.parent = { key: epicIssue.key };
     }
   }
 
-  const response = await jiraRequest('/issue', { method: 'POST', body: { fields } });
+  const response = await jiraRequest<JiraIssue>('/issue', { method: 'POST', body: { fields } });
   return { ...response, summary, issueType: issueType.name };
 }
 
-async function createSubtask({ projectKey, issueType, parentIssue, summary, description, labels }) {
+export async function createSubtask({
+  projectKey,
+  issueType,
+  parentIssue,
+  summary,
+  description,
+  labels
+}: {
+  projectKey: string;
+  issueType: JiraIssueType;
+  parentIssue: JiraIssue;
+  summary: string;
+  description: string;
+  labels?: string[];
+}) {
   if (!parentIssue) {
     throw new Error('Sub-task creation requires a parent issue.');
   }
@@ -244,8 +336,19 @@ async function createSubtask({ projectKey, issueType, parentIssue, summary, desc
   });
 }
 
-async function createDemoIssues(project, issueTypes) {
-  const results = {
+export interface DemoIssues {
+  allIssues: JiraIssue[];
+  epic?: JiraIssue;
+  plainStory?: JiraIssue;
+  storyWithSubtasks?: JiraIssue & { subtasks?: JiraIssue[] };
+  plainTask?: JiraIssue;
+  taskWithSubtasks?: JiraIssue & { subtasks?: JiraIssue[] };
+  plainBug?: JiraIssue;
+  bugWithSubtasks?: JiraIssue & { subtasks?: JiraIssue[] };
+}
+
+export async function createDemoIssues(project: JiraProject, issueTypes: JiraIssueTypeMap): Promise<DemoIssues> {
+  const results: DemoIssues = {
     allIssues: []
   };
 
@@ -378,15 +481,22 @@ async function createDemoIssues(project, issueTypes) {
   return results;
 }
 
-export class JiraTestSandbox {
-  constructor(options = {}) {
-    this.options = options;
-    this.project = null;
-    this.issueTypes = null;
-    this.issues = null;
-  }
+export interface JiraSandboxContext {
+  project: JiraProject;
+  issueTypes: JiraIssueTypeMap;
+  issues: DemoIssues;
+}
 
-  async setup() {
+export class JiraTestSandbox {
+  private project: JiraProject | null = null;
+
+  private issueTypes: JiraIssueTypeMap | null = null;
+
+  private issues: DemoIssues | null = null;
+
+  constructor(private readonly options: { project?: CreateProjectOptions } = {}) {}
+
+  async setup(): Promise<JiraSandboxContext> {
     this.project = await createProject(this.options.project);
     this.issueTypes = await getCreateMeta(this.project.key);
     this.issues = await createDemoIssues(this.project, this.issueTypes);
@@ -397,7 +507,7 @@ export class JiraTestSandbox {
     };
   }
 
-  async teardown() {
+  async teardown(): Promise<void> {
     if (this.project) {
       try {
         await deleteProject(this.project.id);
@@ -413,7 +523,7 @@ export class JiraTestSandbox {
     this.issues = null;
   }
 
-  async run(callback) {
+  async run<T>(callback: (context: JiraSandboxContext) => Promise<T>): Promise<T> {
     const context = await this.setup();
     try {
       return await callback(context);
@@ -423,16 +533,10 @@ export class JiraTestSandbox {
   }
 }
 
-export async function withJiraTestProject(callback, options) {
+export async function withJiraTestProject<T>(
+  callback: (context: JiraSandboxContext) => Promise<T>,
+  options?: { project?: CreateProjectOptions }
+) {
   const sandbox = new JiraTestSandbox(options);
   return sandbox.run(callback);
 }
-
-export {
-  createProject,
-  deleteProject,
-  createDemoIssues,
-  createIssue,
-  getCreateMeta,
-  jiraRequest
-};
