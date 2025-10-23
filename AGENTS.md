@@ -19,7 +19,6 @@ Whenever behaviour or developer workflows change, update the relevant documentat
 
 ## Active Forge apps
 
-- `hello-world-app`: initial tutorial scaffold retained for reference only.
 - `gantt-horizon`: primary TypeScript project for incremental feature work.
 
 ## Versioning

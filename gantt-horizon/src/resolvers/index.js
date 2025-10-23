@@ -1,8 +1,8 @@
 import Resolver from '@forge/resolver';
 
-const resolver = new (Resolver as any)();
+const resolver = new Resolver();
 
-resolver.define('getText', (req: { payload: unknown }) => {
+resolver.define('getText', (req) => {
   console.log('getText invoked with payload:', req.payload);
   return 'Hello, world!';
 });

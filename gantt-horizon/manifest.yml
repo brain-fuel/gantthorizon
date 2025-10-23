@@ -1,6 +1,6 @@
 modules:
   jira:projectPage:
-    - key: gantt-horizon-hello-world-project-page
+    - key: gantt-horizon-project-page
       resource: main
       resolver:
         function: resolver
