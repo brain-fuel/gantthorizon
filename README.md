@@ -1,27 +1,27 @@
 # Gantt Horizon
 
-Gantt Horizon is a Forge app being built under the Compass & Frame banner to turn Jira issues into reliable delivery plans. The project currently focuses on precise Modified PERT estimation and sequential aggregation so that schedule credibility is baked into the data model from the start. This document walks new contributors through the repository structure, the underlying concepts, and the day-to-day workflows.
+Gantt Horizon is a Forge app under the Compass & Frame banner that turns Jira issues into reliable delivery plans. The current focus is Modified PERT estimation and sequential aggregation, laying the mathematical groundwork for critical-path scheduling. This guide orients new developers on the structure, theory, and workflows.
 
 ## Repository layout
 
-- `.gantt-horizon-version` – project-level semantic version (human managed, currently `0.2.1`).
-- `AGENTS.md` – operational playbook: environment secrets, test commands, commit conventions.
-- `docs/sample-press-release.md` – the “working backwards” artefact framing the product vision.
+- `.gantt-horizon-version` – semantic version for stakeholders (currently `0.3.0`).
+- `AGENTS.md` – operational instructions, secrets handling, testing commands, commit rules.
+- `docs/sample-press-release.md` – working-backwards press release for the product vision.
 - `gantt-horizon/` – Forge app source.
-  - `package.json`, `package-lock.json` – TypeScript toolchain wired for Forge UI Kit.
-  - `tsconfig.json` – NodeNext ES module config with strict typing.
+  - `package.json`, `package-lock.json` – TypeScript / Forge CLI toolchain.
+  - `tsconfig.json` – NodeNext compiler settings.
   - `src/`
-    - `index.ts`, `resolvers/index.ts` – Forge runtime entry points.
-    - `frontend/index.tsx` – UI Kit project-page surface.
-    - `lib/` – reusable scheduling and Jira helpers (PERT math, aggregation, sandbox, etc.).
-  - `tests/` – Node test runner suites compiled to `dist/tests/*.test.js`.
+    - `index.ts`, `resolvers/index.ts` – Forge backend entry.
+    - `frontend/index.tsx` – UI Kit project page (currently a placeholder view).
+    - `lib/` – PERT math, aggregation, Jira automation helpers.
+  - `tests/` – Node test suites (built output lives in `dist/tests`).
 
 ## Concept primer
 
-1. **Modified PERT** – every estimate triple `(best, mostLikely, worst)` becomes a beta distribution on `[a, b]` with weight `λ`. Means and variances are deterministic, enabling additive roll-ups.
-2. **Sequential aggregation** – parent tasks sum child expectations and variances (`aggregateSequentialPert`). Parallel legs and critical-path analysis come next.
-3. **Jira persistence** – leaf issues store the triple (and hour aliases) in a Forge issue property so we can recompute aggregates or feed UI surfaces without re-entry.
-4. **Sandbox** – tests create a throwaway Jira project with stories/tasks/bugs and sub-tasks so every hierarchy combination exists for assertions.
+1. **Modified PERT** – estimate triples `(best, mostLikely, worst)` map to Beta distributions with weight `λ` (default 4). Means and variances are deterministic.
+2. **Sequential aggregation** – parent durations sum child expectations/variances (`aggregateSequentialPert`). Parallel handling and critical-path scoring will follow.
+3. **Persistence in Jira** – when we create a task via `createPertTask`, we store the triple (plus hour aliases) as an issue property so resolvers/UI can reuse the values.
+4. **Sandboxing** – `jiraTestSandbox` spins up temporary projects with stories/tasks/bugs & subtasks so tests can validate every hierarchy scenario before teardown.
 
 ## Local setup
 
@@ -30,26 +30,26 @@ Gantt Horizon is a Forge app being built under the Compass & Frame banner to tur
    cd gantt-horizon
    npm install
    ```
-2. Populate secret helpers in the repo root (never commit them):
+2. Seed helper files (never commit them):
    ```bash
    echo 'you@example.com' > .atlassian-email
    echo 'api-token-value' > .atlassian-token
    echo 'your-site.atlassian.net' > .atlassian-jira-site
    ```
-3. Export them when running commands that call Jira/Forge:
+3. Export secrets when running commands that contact Jira or Forge:
    ```bash
    export FORGE_EMAIL=$(cat .atlassian-email)
    export FORGE_API_TOKEN=$(cat .atlassian-token)
    export JIRA_SITE=$(cat .atlassian-jira-site)
    ```
 
-## Key npm scripts (run from `gantt-horizon/`)
+## Key npm scripts
 
-- `npm run build` – compiles TypeScript into `dist/` (tests consume the compiled output).
-- `npm run test` – builds then executes `node --test dist/tests/**/*.test.js`. Integration suites auto-skip when credentials are missing.
-- `npm run lint` – ESLint check (UI Kit template default).
+- `npm run build` – compile TypeScript to `dist/` (tests consume compiled JS; Forge bundler still handles runtime packaging).
+- `npm run test` – build then execute `node --test dist/tests/**/*.test.js`. Integration tests auto-skip without credentials.
+- `npm run lint` – ESLint (UI Kit default).
 
-## Running tests explicitly
+## Running tests manually
 
 ```bash
 cd gantt-horizon
@@ -59,53 +59,52 @@ node --test dist/tests/pert-task.test.js
 node --test dist/tests/jira-sandbox.test.js
 ```
 
-Each test tears down any temporary project it creates; failures log the project key so you can clean up manually.
+Temporary Jira projects are deleted in teardown; if a test fails it prints the project key for manual cleanup.
 
 ## Deploying to the Forge development environment
 
-1. Ensure Forge CLI is installed and you are logged in.
-2. Export credentials:
-   ```bash
-   export FORGE_EMAIL=$(cat ../.atlassian-email)
-   export FORGE_API_TOKEN=$(cat ../.atlassian-token)
-   ```
-3. (Optional) export your Jira site if commands reference it:
-   ```bash
-   export JIRA_SITE=$(cat ../.atlassian-jira-site)
-   ```
-4. Deploy the app to the development environment:
+1. Install Forge CLI and log in (`forge login`).
+2. Export secrets (see Local setup step 3).
+3. Build the project:
    ```bash
    cd gantt-horizon
    npm run build
+   ```
+4. Deploy to the development environment:
+   ```bash
    forge deploy --environment development --non-interactive
    ```
-   `--no-verify` is available if linting blocks while TypeScript-only sources are in place.
-5. Install (if not already installed):
+   Add `--no-verify` if ESLint blocks due to TypeScript-only sources.
+5. Install if needed:
    ```bash
-   forge install --environment development --product jira --site <your-site>.atlassian.net --non-interactive --confirm-scopes
+   forge install --environment development --product jira --site <site>.atlassian.net --non-interactive --confirm-scopes
    ```
 
-## Forge app structure
+## Forge app structure (highlights)
 
-- **Frontend (`src/frontend/index.tsx`)** – currently a simple UI Kit page; will evolve into the scheduling dashboard.
-- **Resolvers (`src/resolvers/index.ts`)** – Forge functions; currently a placeholder example for UI integration.
-- **Lib modules** – core scheduling utilities, Jira integration, and sandbox support.
+- `src/frontend/index.tsx` – UI Kit view (to-be replaced by scheduling dashboard).
+- `src/resolvers/index.ts` – Forge backend (currently sample resolver).
+- `src/lib/` –
+  - `pertMath.ts` – Validates triples, computes Modified PERT beta parameters, mean, variance.
+  - `pertAggregation.ts` – Sequential roll-up summary (mean, variance, support).
+  - `pertTask.ts` – Creates Jira tasks with PERT properties, exposes `getPertEstimate`.
+  - `jiraTestSandbox.ts` – Creates test projects/issues, handles teardown.
 
 ## Versioning
 
 - Forge increments deployment majors automatically (`forge deploy`).
-- Human semantic version lives in `.gantt-horizon-version`; update it whenever we ship a meaningful milestone (current value: `0.2.1`).
+- Project semantic version is managed in `.gantt-horizon-version` (currently `0.3.0`). Update it whenever behaviour changes significantly.
 
-## Future work hooks
+## Future work
 
-- Extend aggregation to handle parallel branches and critical-path calculations.
-- Surface scheduling insights in UI Kit (Gantt view, probability bands).
-- Implement issue-change triggers and recompute cadence for always-fresh timelines.
+- Parallel aggregation & critical path calculations.
+- UI surfaces for schedule confidence and critical tasks.
+- Event triggers & scheduled recompute cadence.
 
 ## Getting help
 
-- Review `AGENTS.md` for day-to-day instructions.
-- Reach out via Compass & Frame channels for credentials or process questions.
-- Use `docs/sample-press-release.md` to orient features toward the product vision.
+- See `AGENTS.md` for operational instructions.
+- Contact Compass & Frame maintainers when credentials or Forge access need attention.
+- Align features with the press release in `docs/sample-press-release.md`.
 
 Happy building!
